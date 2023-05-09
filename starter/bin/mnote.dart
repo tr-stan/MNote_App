@@ -32,8 +32,10 @@ import 'dart:io';
 import 'package:shelf_router/shelf_router.dart';
 import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as server;
+import 'package:mnote/service_account_credentials.dart';
 
 Future<void> main(List<String> arguments) async {
+  final credentials = getCredentials();
   // Creates a shelf_router Router object. A Router allows you to route HTTP
   // endpoints to handler functions.
   final app = Router();

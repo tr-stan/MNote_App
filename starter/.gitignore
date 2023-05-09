@@ -2,5 +2,9 @@
 .dart_tool/
 .packages
 
+
 # Conventional directory for build output.
 build/
+
+# Files holding private info
+service_account_credentials.dart

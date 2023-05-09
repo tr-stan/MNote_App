@@ -35,7 +35,7 @@ import 'package:shelf/shelf.dart';
 
 class Helper {
   /// The Google Cloud project ID. Replace with service account `project_id`
-  static const projectId = 'mnote-c7379';
+  static const projectId = 'mnote-865a3';
 
   /// This is the path to the default Cloud Firestore database for the project
   static const database = 'projects/$projectId/databases/(default)';
