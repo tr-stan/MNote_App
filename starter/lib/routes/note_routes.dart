@@ -28,6 +28,8 @@
 
 import 'package:googleapis/firestore/v1.dart';
 import 'package:shelf_router/shelf_router.dart';
+import 'package:shelf/shelf.dart';
+import 'package:mnote/controllers/note_controller.dart';
 
 /// Defines notes management routes
 class NoteRoutes {
@@ -39,7 +41,15 @@ class NoteRoutes {
   Router get router {
     final router = Router();
 
-    // Your route code goes here
+    router.get('/', (Request request) => NoteController(api).index());
+
+    router.post('/', (Request request) => NoteController(api).store(request));
+
+    router.get(
+        '/<id>', (Request request, String id) => NoteController(api).show(id));
+
+    router.delete('/<id>;',
+        (Request request, String id) => NoteController(api).destroy(id));
 
     return router;
   }
