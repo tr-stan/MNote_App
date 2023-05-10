@@ -28,6 +28,9 @@
 
 import 'package:googleapis/firestore/v1.dart';
 import 'package:shelf_router/shelf_router.dart';
+import 'package:shelf/shelf.dart';
+
+import 'package:mnote/controllers/user_controller.dart';
 
 /// Defines user authentication routes
 class UserRoutes {
@@ -39,7 +42,11 @@ class UserRoutes {
   Router get router {
     final router = Router();
 
-    // Your route code goes here
+    router.post('/register',
+        (Request request) => UserController(api).register(request));
+
+    router.post(
+        '/login', (Request request) => UserController(api).login(request));
 
     return router;
   }
