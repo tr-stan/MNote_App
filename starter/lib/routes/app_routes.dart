@@ -26,9 +26,14 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+import 'dart:convert';
 import 'package:googleapis/firestore/v1.dart';
 
 import 'package:shelf_router/shelf_router.dart';
+import 'package:shelf/shelf.dart';
+
+import 'note_routes.dart';
+import 'user_routes.dart';
 
 /// Defines application's top-level routes
 class AppRoutes {
@@ -42,8 +47,24 @@ class AppRoutes {
     /// endpoints to handler functions.
     final router = Router();
 
-    // Your route code goes here
+    router.get('/', (Request request) {
+      final aboutApp = {
+        'name': 'MNote',
+        'version': 'v1.0.0',
+        'description': 'A minimal note management API to take and save notes'
+      };
+      return Response.ok(jsonEncode(aboutApp));
+    });
 
+    router.mount('/users', UserRoutes(api: api).router);
+    router.mount('/notes', NoteRoutes(api: api).router);
+
+    router.all(
+      '/<ignore|.*>',
+      (Request r) => Response.notFound(
+        jsonEncode({'message': 'Route not defined'}),
+      ),
+    );
     return router;
   }
 }
