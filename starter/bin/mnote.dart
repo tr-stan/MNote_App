@@ -29,34 +29,40 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:googleapis/firestore/v1.dart';
+import 'package:googleapis_auth/auth_io.dart';
 import 'package:shelf_router/shelf_router.dart';
 import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as server;
+
+import 'package:mnote/routes/app_routes.dart';
+import 'package:mnote/helpers/helper.dart';
 import 'package:mnote/service_account_credentials.dart';
 
 Future<void> main(List<String> arguments) async {
   final credentials = getCredentials();
-  // Creates a shelf_router Router object. A Router allows you to route HTTP
-  // endpoints to handler functions.
-  final app = Router();
+  final client =
+      await clientViaServiceAccount(credentials, [FirestoreApi.datastoreScope]);
 
-  // Maps any HTTP GET requests to the second closure handler
-  app.get('/', (Request request) {
-    final aboutApp = {
-      'name': 'MNote',
-      'version': 'v1.0.0',
-      'description': 'A minimal note management API to take and save notes'
-    };
-    // Returns a shelf Response in JSON format. Responses enable you to
-    // reply to HTTP requests
-    return Response.ok(jsonEncode(aboutApp));
-  });
+  try {
+    // 2
+    final firestoreApi = FirestoreApi(client);
+    // Creates a shelf_router Router object. A Router allows you to route HTTP
+    // endpoints to handler functions.
+    final app = Router();
+    // 3
+    app.mount('/v1', AppRoutes(firestoreApi).router);
 
-  // Creates a handler with the router that adds logRequests()
-  // middleware to log requests entering the application
-  final handler = const Pipeline().addMiddleware(logRequests()).addHandler(app);
+    // Creates a handler with the router that adds logRequests()
+    // middleware to log requests entering the application
+    final handler =
+        const Pipeline().addMiddleware(logRequests()).addHandler(app);
 
-  // Uses shelf to serve the application on port 8080 of any available address
-  final mServer = await server.serve(handler, InternetAddress.anyIPv4, 8080);
-  print('Server started at http://${mServer.address.host}:${mServer.port}');
+    // Uses shelf to serve the application on port 8080 of any available address
+    final mServer = await server.serve(handler, InternetAddress.anyIPv4, 8080);
+    print('Server started at http://${mServer.address.host}:${mServer.port}');
+  } on Exception {
+    // 4
+    Helper.error();
+  }
 }
