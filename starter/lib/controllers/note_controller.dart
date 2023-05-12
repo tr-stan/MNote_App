@@ -27,10 +27,13 @@
 // THE SOFTWARE.
 
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:shelf/shelf.dart';
-
 import 'package:googleapis/firestore/v1.dart';
+
+import '../helpers/helper.dart';
+import '../models/note.dart';
 
 /// Controller for managing notes
 class NoteController {
@@ -40,14 +43,72 @@ class NoteController {
   NoteController(this.firestoreApi);
 
   /// Deletes the note with the given [id]
-  Future<Response> destroy(String id) async => Response.ok('Delete $id');
+  Future<Response> destroy(String id) async {
+    try {
+      await firestoreApi.projects.databases.documents
+          .delete('${Helper.doc}/notes/$id');
+      return Response.ok(jsonEncode({'message': 'Delete successful'}));
+    } on Exception {
+      return Helper.error();
+    }
+  }
 
   /// Lists all notes
-  Future<Response> index() async => Response.ok('Index');
+  Future<Response> index() async {
+    try {
+      final docList = await Helper.getDocs(firestoreApi, 'notes');
+      final notes = docList.documents
+          ?.map((e) =>
+              e.fields?.map((key, value) => MapEntry(key, value.stringValue)))
+          .toList();
+      return Response.ok(jsonEncode(notes ?? <String>[]));
+    } on Exception {
+      return Helper.error();
+    }
+  }
 
   /// Retrieves the note with the given [id]
-  Future<Response> show(String id) async => Response.ok('Show $id');
+  Future<Response> show(String id) async {
+    try {
+      final doc = await firestoreApi.projects.databases.documents
+          .get('${Helper.doc}/notes/$id');
+      final notes =
+          doc.fields?.map((key, value) => MapEntry(key, value.stringValue));
+      return Response.ok(jsonEncode(notes));
+    } on Exception {
+      return Helper.error();
+    }
+  }
 
   /// Saves a note into Cloud Firestore
-  Future<Response> store(Request request) async => Response.ok('Store');
+  Future<Response> store(Request request) async {
+    final req = await request.readAsString();
+    final id = Helper.randomChars(15);
+    final isEmpty = request.isEmpty || req.trim().isEmpty;
+
+    if (isEmpty) {
+      return Response.forbidden(jsonEncode({'message': 'Bad request'}));
+    }
+
+    final json = jsonDecode(req) as Map<String, dynamic>;
+    final title = (json['title'] ?? '') as String;
+    final description = (json['description'] ?? '') as String;
+
+    if (title.isEmpty || description.isEmpty) {
+      return Response.forbidden(
+          jsonEncode({'message': 'All fields are required'}));
+    }
+
+    final note = Note(title: title, description: description, id: id);
+    try {
+      await Helper.push(firestoreApi,
+          path: 'notes/$id',
+          fields: note
+              .toMap()
+              .map((key, value) => MapEntry(key, Value(stringValue: value))));
+      return Response.ok(note.toJson());
+    } on Exception {
+      return Helper.error();
+    }
+  }
 }
