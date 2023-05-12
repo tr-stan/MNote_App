@@ -31,6 +31,7 @@ import 'dart:io';
 
 import 'package:googleapis/firestore/v1.dart';
 import 'package:googleapis_auth/auth_io.dart';
+import 'package:mnote/helpers/middleware.dart';
 import 'package:shelf_router/shelf_router.dart';
 import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as server;
@@ -55,8 +56,10 @@ Future<void> main(List<String> arguments) async {
 
     // Creates a handler with the router that adds logRequests()
     // middleware to log requests entering the application
-    final handler =
-        const Pipeline().addMiddleware(logRequests()).addHandler(app);
+    final handler = const Pipeline()
+        .addMiddleware(ensureResponsesHaveHeaders())
+        .addMiddleware(logRequests())
+        .addHandler(app);
 
     // Uses shelf to serve the application on port 8080 of any available address
     final mServer = await server.serve(handler, InternetAddress.anyIPv4, 8080);

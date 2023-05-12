@@ -30,7 +30,14 @@ import 'package:shelf/shelf.dart';
 import 'package:googleapis/firestore/v1.dart';
 
 /// Adds `Content-Type` and `Cache-Control` headers to the response
-Middleware ensureResponsesHaveHeaders() => createMiddleware();
+Middleware ensureResponsesHaveHeaders() {
+  return createMiddleware(responseHandler: (response) {
+    return response.change(headers: {
+      'Content-Type': 'application/json',
+      'Cache-Control': 'max-age=604800',
+    });
+  });
+}
 
 /// Ensures that requests to restricted endpoints contain
 /// an `Authorization` header and that an API token is valid
