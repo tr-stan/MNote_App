@@ -58,6 +58,7 @@ Future<void> main(List<String> arguments) async {
     // middleware to log requests entering the application
     final handler = const Pipeline()
         .addMiddleware(ensureResponsesHaveHeaders())
+        .addMiddleware((authenticate(firestoreApi)))
         .addMiddleware(logRequests())
         .addHandler(app);
 

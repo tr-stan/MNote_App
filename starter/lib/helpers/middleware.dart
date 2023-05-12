@@ -26,8 +26,12 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+import 'dart:convert';
+
 import 'package:shelf/shelf.dart';
 import 'package:googleapis/firestore/v1.dart';
+
+import 'helper.dart';
 
 /// Adds `Content-Type` and `Cache-Control` headers to the response
 Middleware ensureResponsesHaveHeaders() {
@@ -41,4 +45,37 @@ Middleware ensureResponsesHaveHeaders() {
 
 /// Ensures that requests to restricted endpoints contain
 /// an `Authorization` header and that an API token is valid
-Middleware authenticate(FirestoreApi api) => createMiddleware();
+Middleware authenticate(FirestoreApi api) {
+  return createMiddleware(requestHandler: (request) async {
+    if (request.requestedUri.path == '/v1/' ||
+        request.requestedUri.path == '/v1' ||
+        request.requestedUri.path.contains('v1/users/login') ||
+        request.requestedUri.path.contains('v1/users/register')) {
+      return null;
+    }
+
+    var token = request.headers['Authorization'];
+    if (token == null || token.trim().isEmpty) {
+      return Response.forbidden(jsonEncode({'message': 'Unauthenticated'}));
+    }
+
+    if (token.contains('Bearer')) {
+      token = token.substring(6).trim();
+    }
+
+    try {
+      final docs = await Helper.getDocs(api, 'users');
+      final tokenValid = (docs.documents ?? []).isNotEmpty &&
+          docs.documents!.any(
+              (e) => e.fields!.values.any((el) => el.stringValue == token));
+
+      if (!tokenValid) {
+        return Response.forbidden(
+            jsonEncode({'message': 'Invalid API token: ${token}'}));
+      }
+      return null;
+    } on Exception {
+      return Helper.error();
+    }
+  });
+}
