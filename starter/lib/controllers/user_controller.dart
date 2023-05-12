@@ -27,9 +27,15 @@
 // THE SOFTWARE.
 
 import 'dart:async';
+import 'dart:convert';
+
+import 'package:collection/collection.dart';
 
 import 'package:googleapis/firestore/v1.dart';
 import 'package:shelf/shelf.dart';
+
+import '../helpers/helper.dart';
+import '../models/user.dart';
 
 /// A controller for handling user authentication logic
 class UserController {
@@ -38,12 +44,79 @@ class UserController {
   UserController(this.firestoreApi);
 
   /// Logs in the user
-  Future<Response> login(Request request) async => Response.ok('Login');
+  Future<Response> login(Request request) async {
+    final req = await request.readAsString();
+    if (request.isEmpty || !validate(req)) {
+      return Response.forbidden(jsonEncode({'message': 'Bad request'}));
+    }
+
+    final mJson = jsonDecode(req) as Map<String, dynamic>;
+
+    final docs = await Helper.getDocs(firestoreApi, 'users');
+    if ((docs.documents ?? []).isEmpty) {
+      return Response.notFound(jsonEncode({'message': 'User not found'}));
+    }
+
+    final user = docs.documents!.firstWhereOrNull((e) =>
+        e.fields?['email']?.stringValue == mJson['email'] &&
+        e.fields?['password']?.stringValue ==
+            Helper.hash(mJson['password'] as String));
+
+    if (user == null) {
+      return Response.forbidden(
+          jsonEncode({'message': 'Invalid email and/or password'}));
+    }
+
+    return Response.ok(jsonEncode(
+        {'apiKey': docs.documents!.first.fields?['apiKey']?.stringValue}));
+  }
 
   /// Registers the user
-  Future<Response> register(Request request) async => Response.ok('Register');
+  Future<Response> register(Request request) async {
+    final req = await request.readAsString();
+
+    if (request.isEmpty || !validate(req)) {
+      return Response.forbidden(jsonEncode({'message': 'Bad request'}));
+    }
+
+    final mJson = jsonDecode(req) as Map<String, dynamic>;
+    final apiKey = Helper.randomChars(40);
+    final id = Helper.randomChars(15);
+
+    final user = User(
+      id: id,
+      email: (mJson['email'] ?? '') as String,
+      password: Helper.hash(mJson['password'] as String),
+      apiKey: apiKey,
+    );
+
+    // save user to users collection in firestore
+    try {
+      Helper.push(
+        firestoreApi,
+        path: 'users/$id',
+        fields: user.toMap().map(
+              (key, value) => MapEntry(
+                key,
+                Value(stringValue: value),
+              ),
+            ),
+      );
+      return Response.ok(user.toJson());
+    } on Exception {
+      return Helper.error();
+    }
+  }
 
   /// Validates a request body and returns true if it contains
   /// email and password
-  bool validate(String req) => true;
+  bool validate(String req) {
+    final json = jsonDecode(req) as Map;
+
+    return req.trim().isNotEmpty &&
+        json['email'] != null &&
+        (json['email'] as String).trim().isNotEmpty &&
+        json['password'] != null &&
+        (json['password'] as String).trim().isNotEmpty;
+  }
 }
