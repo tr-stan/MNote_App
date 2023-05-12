@@ -48,7 +48,7 @@ class NoteRoutes {
     router.get(
         '/<id>', (Request request, String id) => NoteController(api).show(id));
 
-    router.delete('/<id>;',
+    router.delete('/<id>',
         (Request request, String id) => NoteController(api).destroy(id));
 
     return router;
