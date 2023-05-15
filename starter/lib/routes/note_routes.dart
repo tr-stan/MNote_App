@@ -29,7 +29,7 @@
 import 'package:googleapis/firestore/v1.dart';
 import 'package:shelf_router/shelf_router.dart';
 import 'package:shelf/shelf.dart';
-import 'package:mnote/controllers/note_controller.dart';
+import '../controllers/note_controller.dart';
 
 /// Defines notes management routes
 class NoteRoutes {
