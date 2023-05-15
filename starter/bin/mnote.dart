@@ -26,7 +26,6 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:googleapis/firestore/v1.dart';
@@ -38,12 +37,11 @@ import 'package:shelf/shelf_io.dart' as server;
 
 import 'package:mnote/routes/app_routes.dart';
 import 'package:mnote/helpers/helper.dart';
-import 'package:mnote/service_account_credentials.dart';
 
 Future<void> main(List<String> arguments) async {
-  final credentials = getCredentials();
-  final client =
-      await clientViaServiceAccount(credentials, [FirestoreApi.datastoreScope]);
+  final client = await clientViaApplicationDefaultCredentials(
+    scopes: [FirestoreApi.datastoreScope],
+  );
 
   try {
     // 2
